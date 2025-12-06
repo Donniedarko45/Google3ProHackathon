@@ -9,19 +9,26 @@ import { AppStatus, FileData, NeuroLensResponse } from './types';
 function App() {
   const [status, setStatus] = useState<AppStatus>(AppStatus.IDLE);
   const [result, setResult] = useState<NeuroLensResponse | null>(null);
-  const [fileData, setFileData] = useState<FileData | null>(null);
+  const [filesData, setFilesData] = useState<FileData[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    processFile(file);
+    const fileList = event.target.files;
+    if (!fileList || fileList.length === 0) return;
+    processFiles(Array.from(fileList));
   }, []);
 
-  const processFile = (file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMsg("File size exceeds limit (10MB).");
+  const processFiles = async (files: File[]) => {
+    // Validation
+    const totalSize = files.reduce((acc, file) => acc + file.size, 0);
+    if (totalSize > 20 * 1024 * 1024) { // Increased limit for multi-files
+      setErrorMsg("Total file size exceeds limit (20MB).");
+      return;
+    }
+
+    if (files.length > 5) {
+      setErrorMsg("Maximum 5 files allowed per analysis.");
       return;
     }
 
@@ -29,28 +36,44 @@ function App() {
     setErrorMsg(null);
     setResult(null);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      const base64 = result.split(',')[1];
-      const mimeType = file.type || 'application/octet-stream';
-      
-      setFileData({
-        file,
-        previewUrl: file.type.startsWith('image/') ? result : undefined,
-        base64,
-        mimeType
-      });
+    // Read all files
+    try {
+      const processedFiles: FileData[] = await Promise.all(
+        files.map(
+          (file) =>
+            new Promise<FileData>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const result = e.target?.result as string;
+                // handle text files or binary files
+                const base64 = result.includes(',') ? result.split(',')[1] : result;
+                const mimeType = file.type || 'application/octet-stream';
+                
+                resolve({
+                  file,
+                  previewUrl: file.type.startsWith('image/') ? result : undefined,
+                  base64,
+                  mimeType
+                });
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            })
+        )
+      );
 
-      startAnalysis(base64, mimeType);
-    };
-    reader.readAsDataURL(file);
+      setFilesData(processedFiles);
+      startAnalysis(processedFiles);
+    } catch (error) {
+      console.error("File reading failed", error);
+      setErrorMsg("Failed to process input files.");
+    }
   };
 
-  const startAnalysis = async (base64: string, mimeType: string) => {
+  const startAnalysis = async (files: FileData[]) => {
     setStatus(AppStatus.ANALYZING);
     try {
-      const response = await analyzeContent(base64, mimeType);
+      const response = await analyzeContent(files);
       setResult(response);
       setStatus(AppStatus.SUCCESS);
     } catch (err: any) {
@@ -63,8 +86,8 @@ function App() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -88,7 +111,7 @@ function App() {
             <div className="flex flex-col items-center justify-center min-h-[60vh] animate-enter">
                 <div className="text-center space-y-6 max-w-2xl mb-12">
                    <div className="inline-block border border-white/10 bg-white/5 rounded-full px-4 py-1.5 text-xs font-mono text-indigo-300 mb-4">
-                      V3.0 // REASONING_ENGINE_READY
+                      V3.1 // MULTI_SOURCE_ENABLED
                    </div>
                    <h2 className="text-5xl md:text-7xl font-light tracking-tighter text-white">
                       Detect. Reason. <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">Resolve.</span>
@@ -110,7 +133,7 @@ function App() {
                    <div className="relative bg-gray-950 border border-white/10 hover:border-white/20 rounded-full px-12 py-6 flex items-center gap-4 transition-all group-hover:scale-[1.02]">
                       <IconUpload className="w-5 h-5 text-indigo-400" />
                       <span className="text-sm font-mono text-gray-300 group-hover:text-white transition-colors">
-                        INITIATE UPLOAD SEQUENCE
+                        INITIATE UPLOAD SEQUENCE (MULTI-FILE)
                       </span>
                    </div>
                    <input 
@@ -118,12 +141,13 @@ function App() {
                       ref={fileInputRef} 
                       onChange={handleFileChange} 
                       className="hidden" 
-                      accept="image/*,application/pdf,text/*,.csv,.json,.xml"
+                      multiple
+                      accept="image/*,application/pdf,text/*,.csv,.json,.xml,.yaml,.yml"
                    />
                 </div>
                 
                 <p className="mt-8 text-[10px] text-gray-600 font-mono">
-                   SUPPORTED: IMG, PDF, TXT, LOG, JSON, CODE
+                   SUPPORTED: IMG, PDF, TXT, LOG, JSON, YAML, CODE (BATCH READY)
                 </p>
             </div>
         )}
@@ -156,7 +180,7 @@ function App() {
                  <button 
                     onClick={() => {
                         setStatus(AppStatus.IDLE);
-                        setFileData(null);
+                        setFilesData([]);
                         setResult(null);
                     }}
                     className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-900 border border-white/10 hover:border-indigo-500/50 hover:bg-gray-800 text-gray-400 hover:text-indigo-400 transition-all shadow-2xl"
@@ -166,7 +190,7 @@ function App() {
                  </button>
              </div>
              
-             <ResultView data={result} fileInfo={fileData} />
+             <ResultView data={result} files={filesData} />
           </div>
         )}
 

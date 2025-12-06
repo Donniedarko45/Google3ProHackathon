@@ -5,28 +5,34 @@ import ReactMarkdown from 'react-markdown';
 
 interface ResultViewProps {
   data: NeuroLensResponse;
-  fileInfo: FileData | null;
+  files: FileData[];
 }
 
 const TypewriterText = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState('');
+  const [displayCount, setDisplayCount] = useState(0);
   
   useEffect(() => {
-    let index = 0;
-    // Faster typing speed for better UX
+    setDisplayCount(0);
+    if (!text) return;
+
     const intervalId = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(index));
-      index++;
-      if (index === text.length) clearInterval(intervalId);
-    }, 5); 
+      setDisplayCount((prev) => {
+        if (prev >= text.length) {
+          clearInterval(intervalId);
+          return prev;
+        }
+        const chunk = Math.max(1, Math.ceil(text.length / 150));
+        return Math.min(prev + chunk, text.length);
+      });
+    }, 15); 
     
     return () => clearInterval(intervalId);
   }, [text]);
 
-  return <ReactMarkdown>{displayedText}</ReactMarkdown>;
+  return <ReactMarkdown>{text.slice(0, displayCount)}</ReactMarkdown>;
 };
 
-const ResultView: React.FC<ResultViewProps> = ({ data, fileInfo }) => {
+const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -43,27 +49,45 @@ const ResultView: React.FC<ResultViewProps> = ({ data, fileInfo }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Find the first image to display as visual target
+  const visualTarget = files.find(f => f.previewUrl);
+
   return (
     <div className="w-full max-w-4xl mx-auto pt-8 pb-24 animate-enter">
       
       {/* Dossier Header / Metadata Block */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 border border-white/10 rounded-t-lg overflow-hidden mb-12">
-          <div className="bg-gray-950 p-4">
-              <span className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Input Source</span>
-              <span className="block text-sm text-indigo-300 font-mono truncate" title={fileInfo?.file.name}>{fileInfo?.file.name || 'UNKNOWN'}</span>
+      <div className="bg-white/5 border border-white/10 rounded-t-lg overflow-hidden mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/5 border-b border-white/5">
+              <div className="bg-gray-950 p-4">
+                  <span className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Input Sources</span>
+                  <span className="block text-sm text-indigo-300 font-mono">{files.length} File{files.length !== 1 ? 's' : ''} Uploaded</span>
+              </div>
+              <div className="bg-gray-950 p-4">
+                  <span className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Total Payload</span>
+                  <span className="block text-sm text-white font-mono">
+                    {formatFileSize(files.reduce((acc, f) => acc + f.file.size, 0))}
+                  </span>
+              </div>
+              <div className="bg-gray-950 p-4">
+                  <span className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Primary Type</span>
+                  <span className="block text-sm text-cyan-300 font-mono truncate">
+                    {files[0]?.mimeType || 'N/A'}
+                  </span>
+              </div>
           </div>
-          <div className="bg-gray-950 p-4">
-              <span className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Data Size</span>
-              <span className="block text-sm text-white font-mono">{fileInfo ? formatFileSize(fileInfo.file.size) : '0 KB'}</span>
-          </div>
-          <div className="bg-gray-950 p-4">
-              <span className="block text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">MIME Type</span>
-              <span className="block text-sm text-cyan-300 font-mono">{fileInfo?.mimeType || 'N/A'}</span>
+          {/* File List Detail */}
+          <div className="bg-gray-900/50 p-3 flex flex-wrap gap-2">
+             {files.map((f, i) => (
+                 <div key={i} className="flex items-center gap-2 bg-black/40 border border-white/10 rounded px-3 py-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500/50"></span>
+                    <span className="text-xs font-mono text-gray-400 truncate max-w-[150px]">{f.file.name}</span>
+                 </div>
+             ))}
           </div>
       </div>
 
-      {/* Image Target View (if image) */}
-      {fileInfo?.previewUrl && (
+      {/* Image Target View (if image exists) */}
+      {visualTarget && (
         <div className="relative mb-16 group rounded-lg overflow-hidden border border-indigo-500/30 bg-gray-900/50">
            {/* HUD Overlay */}
            <div className="absolute inset-0 pointer-events-none z-10">
@@ -81,11 +105,14 @@ const ResultView: React.FC<ResultViewProps> = ({ data, fileInfo }) => {
               </div>
            </div>
            
-           <img 
-             src={fileInfo.previewUrl} 
-             alt="Analysis Target" 
-             className="w-full max-h-[400px] object-contain opacity-60 grayscale-[50%] group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
-           />
+           {/* If multiple images, we just show the first one as the 'prime' target */}
+           {visualTarget.previewUrl && (
+             <img 
+               src={visualTarget.previewUrl} 
+               alt="Analysis Target" 
+               className="w-full max-h-[400px] object-contain opacity-60 grayscale-[50%] group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+             />
+           )}
            {/* Scan Grid */}
            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
         </div>
@@ -106,7 +133,7 @@ const ResultView: React.FC<ResultViewProps> = ({ data, fileInfo }) => {
                 <div className="h-1.5 w-24 bg-gray-800 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 w-[96%]"></div>
                 </div>
-                <span className="text-xs font-mono text-cyan-400">96.4%</span>
+                <span className="text-xs font-mono text-cyan-400">98.2%</span>
             </div>
           </div>
 

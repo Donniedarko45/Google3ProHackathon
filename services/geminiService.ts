@@ -1,25 +1,27 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { SYSTEM_INSTRUCTION, MODEL_NAME } from "../constants";
-import { NeuroLensResponse } from "../types";
+import { NeuroLensResponse, FileData } from "../types";
 
 // Initialize Gemini client
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const analyzeContent = async (
-  base64Data: string,
-  mimeType: string
+  files: FileData[]
 ): Promise<NeuroLensResponse> => {
   try {
+    // map all files to inlineData parts
+    const fileParts = files.map((file) => ({
+      inlineData: {
+        mimeType: file.mimeType,
+        data: file.base64,
+      },
+    }));
+
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
       contents: {
         parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Data,
-            },
-          },
+          ...fileParts,
           {
             text: "Analyze this content. Detect the friction. Provide the solution.",
           },
