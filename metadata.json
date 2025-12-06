@@ -1,0 +1,5 @@
+{
+  "name": "NeuroLens",
+  "description": "A multimodal AI reasoning engine that detects user friction from screenshots, documents, and code, instantly generating actionable solutions.",
+  "requestFramePermissions": []
+}
