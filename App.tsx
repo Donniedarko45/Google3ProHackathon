@@ -47,11 +47,27 @@ function App() {
                 const result = e.target?.result as string;
                 // handle text files or binary files
                 const base64 = result.includes(',') ? result.split(',')[1] : result;
-                const mimeType = file.type || 'application/octet-stream';
+                
+                // Robust MIME Detection Logic
+                let mimeType = file.type;
+                const ext = file.name.split('.').pop()?.toLowerCase();
+
+                // If the browser can't determine the type (empty) or says it's generic binary (octet-stream),
+                // we manually map the extension to a type Gemini understands.
+                if (!mimeType || mimeType === 'application/octet-stream') {
+                   if (ext === 'json') mimeType = 'application/json';
+                   else if (ext === 'pdf') mimeType = 'application/pdf';
+                   else if (ext === 'csv') mimeType = 'text/csv';
+                   else if (['jpg', 'jpeg'].includes(ext || '')) mimeType = 'image/jpeg';
+                   else if (ext === 'png') mimeType = 'image/png';
+                   else if (ext === 'webp') mimeType = 'image/webp';
+                   else if (ext === 'yaml' || ext === 'yml') mimeType = 'text/plain'; 
+                   else mimeType = 'text/plain'; // Default fallback for code (ts, js, py) and logs
+                }
                 
                 resolve({
                   file,
-                  previewUrl: file.type.startsWith('image/') ? result : undefined,
+                  previewUrl: mimeType.startsWith('image/') ? result : undefined,
                   base64,
                   mimeType
                 });
