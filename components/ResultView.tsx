@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { NeuroLensResponse, FileData } from '../types';
 import { IconCheck, IconCopy } from './Icons';
@@ -36,7 +37,17 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(data.action_output);
+    let textToCopy = data.action_output;
+    
+    // Smart Copy: If the output is a single markdown code block, strip the backticks for the clipboard
+    // This allows the UI to show formatted code, but the user to paste clean code.
+    const codeBlockRegex = /^```[a-z]*\n([\s\S]*?)\n```$/;
+    const match = textToCopy.trim().match(codeBlockRegex);
+    if (match) {
+        textToCopy = match[1];
+    }
+
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -151,7 +162,7 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
           <section className="relative">
              <div className="absolute -left-12 top-2 w-8 h-px bg-red-500/50 hidden md:block"></div>
              <div className="flex items-center gap-3 mb-4">
-               <span className="text-red-500 font-mono text-xs font-bold uppercase tracking-widest border border-red-500/30 px-2 py-1 rounded">02. Technical Flaw / Friction</span>
+               <span className="text-red-500 font-mono text-xs font-bold uppercase tracking-widest border border-red-500/30 px-2 py-1 rounded">02. Friction / Insight</span>
              </div>
              <p className="text-xl md:text-2xl text-red-100/90 font-light leading-relaxed border-l-2 border-red-500/50 pl-6 py-1">
                {data.friction_point}
@@ -161,7 +172,7 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
           {/* Section 3: Solution */}
           <section>
              <div className="flex items-center gap-3 mb-6">
-               <span className="text-emerald-400 font-mono text-xs font-bold uppercase tracking-widest border border-emerald-400/30 px-2 py-1 rounded">03. Correction Strategy</span>
+               <span className="text-emerald-400 font-mono text-xs font-bold uppercase tracking-widest border border-emerald-400/30 px-2 py-1 rounded">03. Resolution Strategy</span>
              </div>
              <div className="prose prose-invert prose-p:text-gray-300 prose-p:leading-7 prose-headings:text-white prose-code:text-indigo-300 max-w-none min-h-[100px]">
                <TypewriterText text={data.solution} />
@@ -177,7 +188,7 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
                     <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
                     <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
                 </div>
-                <span className="text-xs font-mono text-gray-500 opacity-50 group-hover:opacity-100 transition-opacity">FINAL_OPTIMIZED_OUTPUT</span>
+                <span className="text-xs font-mono text-gray-500 opacity-50 group-hover:opacity-100 transition-opacity">ACTIONABLE_OUTPUT</span>
                 <button 
                   onClick={handleCopy}
                   className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider hover:text-white text-gray-500 transition-colors"
@@ -186,8 +197,14 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
                   {copied ? <IconCheck className="w-3 h-3 text-green-400" /> : <IconCopy className="w-3 h-3" />}
                 </button>
               </div>
-              <div className="p-6 overflow-x-auto">
-                <pre className="font-mono text-sm text-gray-300 whitespace-pre-wrap">{data.action_output}</pre>
+              <div className="p-6 overflow-x-auto bg-[#0c0c0c]">
+                 {/* Using ReactMarkdown to render both Code (in blocks) and Text (Markdown headers) properly */}
+                 <div className="prose prose-invert prose-sm max-w-none 
+                    prose-pre:bg-transparent prose-pre:p-0 prose-pre:m-0 prose-pre:border-0
+                    prose-code:text-indigo-300 prose-code:font-mono prose-code:text-xs
+                    prose-headings:text-white prose-a:text-indigo-400 prose-strong:text-white">
+                    <ReactMarkdown>{data.action_output}</ReactMarkdown>
+                 </div>
               </div>
             </div>
           </section>

@@ -23,7 +23,7 @@ export const analyzeContent = async (
         parts: [
           ...fileParts,
           {
-            text: "Analyze this content. Detect the friction. Provide the solution.",
+            text: "Analyze this input. Detect the friction. Provide the solution. Return strictly JSON.",
           },
         ],
       },
@@ -35,23 +35,23 @@ export const analyzeContent = async (
           properties: {
             detected_task: {
               type: Type.STRING,
-              description: "The inferred user goal (e.g. 'Build a Login Form', 'Debug CI Pipeline').",
+              description: "The inferred user goal.",
             },
             friction_point: {
               type: Type.STRING,
-              description: "The specific technical or UX flaw causing the issue.",
+              description: "The source of frustration or the problem to solve.",
             },
             solution: {
               type: Type.STRING,
-              description: "A strategic explanation of the fix (methodology, design choices, logic improvements).",
+              description: "The strategy used to solve the problem.",
             },
             action_output: {
               type: Type.STRING,
-              description: "The final, polished, and corrected artifact (Code, Text, or Data) ready for use.",
+              description: "The final usable result (Code, Text, or Data).",
             },
             reason_map: {
               type: Type.STRING,
-              description: "Short logic trace of how the issue was identified.",
+              description: "Logic trace of the reasoning.",
             },
           },
           required: [
