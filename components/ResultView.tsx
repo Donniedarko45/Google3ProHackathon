@@ -140,7 +140,7 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
           {/* Section 1: Intent */}
           <section>
             <div className="flex items-center gap-3 mb-4">
-               <span className="text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest border border-cyan-400/30 px-2 py-1 rounded">01. Intent Detected</span>
+               <span className="text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest border border-cyan-400/30 px-2 py-1 rounded">01. Detected Intent</span>
             </div>
             <h2 className="text-2xl md:text-3xl font-light text-white leading-tight">
               {data.detected_task}
@@ -151,7 +151,7 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
           <section className="relative">
              <div className="absolute -left-12 top-2 w-8 h-px bg-red-500/50 hidden md:block"></div>
              <div className="flex items-center gap-3 mb-4">
-               <span className="text-red-500 font-mono text-xs font-bold uppercase tracking-widest border border-red-500/30 px-2 py-1 rounded">02. Friction Point</span>
+               <span className="text-red-500 font-mono text-xs font-bold uppercase tracking-widest border border-red-500/30 px-2 py-1 rounded">02. Technical Flaw / Friction</span>
              </div>
              <p className="text-xl md:text-2xl text-red-100/90 font-light leading-relaxed border-l-2 border-red-500/50 pl-6 py-1">
                {data.friction_point}
@@ -161,7 +161,7 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
           {/* Section 3: Solution */}
           <section>
              <div className="flex items-center gap-3 mb-6">
-               <span className="text-emerald-400 font-mono text-xs font-bold uppercase tracking-widest border border-emerald-400/30 px-2 py-1 rounded">03. Resolution Protocol</span>
+               <span className="text-emerald-400 font-mono text-xs font-bold uppercase tracking-widest border border-emerald-400/30 px-2 py-1 rounded">03. Correction Strategy</span>
              </div>
              <div className="prose prose-invert prose-p:text-gray-300 prose-p:leading-7 prose-headings:text-white prose-code:text-indigo-300 max-w-none min-h-[100px]">
                <TypewriterText text={data.solution} />
@@ -177,12 +177,12 @@ const ResultView: React.FC<ResultViewProps> = ({ data, files }) => {
                     <div className="w-2 h-2 rounded-full bg-yellow-500/50"></div>
                     <div className="w-2 h-2 rounded-full bg-green-500/50"></div>
                 </div>
-                <span className="text-xs font-mono text-gray-500 opacity-50 group-hover:opacity-100 transition-opacity">generated_artifact.lock</span>
+                <span className="text-xs font-mono text-gray-500 opacity-50 group-hover:opacity-100 transition-opacity">FINAL_OPTIMIZED_OUTPUT</span>
                 <button 
                   onClick={handleCopy}
                   className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider hover:text-white text-gray-500 transition-colors"
                 >
-                  {copied ? <span className="text-green-400">Copied</span> : <span>Copy Contents</span>}
+                  {copied ? <span className="text-green-400">Copied</span> : <span>Copy Output</span>}
                   {copied ? <IconCheck className="w-3 h-3 text-green-400" /> : <IconCopy className="w-3 h-3" />}
                 </button>
               </div>
